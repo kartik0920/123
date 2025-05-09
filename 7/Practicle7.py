@@ -1,13 +1,83 @@
+# Step 1 & 2: Import Libraries and Initialize Text
 import pandas as pd
-import nltk  # Natural Language Toolkit library widely used for NLP applications
-import re  # Regular expressions used for pattern matching
+import numpy as np
+import nltk
+import re
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer, WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+import math
 
-# nltk.download('punkt')
-# nltk.download('stopwords')
-# nltk.download('wordnet')
-# nltk.download('averaged_perceptron_tagger')
 
-# ------------------------------------------------------------------------------------------------------------------------------
+text = "Tokenization is the first step in text analytics. The process of breaking down a text paragraph into smaller chunks such as words or sentences is called Tokenization."
+
+# Step 3: Tokenization
+# Sentence Tokenization
+tokenized_text = sent_tokenize(text)
+print("Sentence Tokenization:\n", tokenized_text)
+
+# Word Tokenization
+tokenized_word = word_tokenize(text)
+print("\nWord Tokenization:\n", tokenized_word)
+
+# Step 4: Remove Punctuations & Stop Words
+text_clean = "How to remove stop words with NLTK library in Python?"
+text_clean = re.sub('[^a-zA-Z]', ' ', text_clean)
+tokens = word_tokenize(text_clean.lower())
+
+stop_words = set(stopwords.words("english"))
+filtered_text = [w for w in tokens if w not in stop_words]
+
+print("\nTokenized Sentence:", tokens)
+print("Filtered Sentence:", filtered_text)
+
+# Step 5: Stemming
+e_words = ["wait", "waiting", "waited", "waits"]
+ps = PorterStemmer()
+print("\nStemming Results:")
+for w in e_words:
+    print(ps.stem(w))
+
+# Step 6: Lemmatization
+wordnet_lemmatizer = WordNetLemmatizer()
+text_lemma = "studies studying cries cry"
+tokenization = word_tokenize(text_lemma)
+print("\nLemmatization Results:")
+for w in tokenization:
+    print(f"Lemma for {w} is {wordnet_lemmatizer.lemmatize(w)}")
+
+# Step 7: POS Tagging
+data = "The pink sweater fit her perfectly"
+words = word_tokenize(data)
+print("\nPOS Tagging:")
+for word in words:
+    print(nltk.pos_tag([word]))
+
+# -----------------------------
+# TF-IDF Manual Computation
+# -----------------------------
+# Step 1: Documents
+documentA = 'Jupiter is the largest Planet'
+documentB = 'Mars is the fourth planet from the Sun'
+
+# Step 2: Bag of Words
+bagOfWordsA = documentA.split(' ')
+bagOfWordsB = documentB.split(' ')
+
+# Step 3: Unique Words
+uniqueWords = set(bagOfWordsA).union(set(bagOfWordsB))
+
+# Step 4: Word Count Dictionary
+numOfWordsA = dict.fromkeys(uniqueWords, 0)
+for word in bagOfWordsA:
+    numOfWordsA[word] += 1
+
+numOfWordsB = dict.fromkeys(uniqueWords, 0)
+for word in bagOfWordsB:
+    numOfWordsB[word] += 1
+
+# Step 5: Compute TF
 def computeTF(wordDict, bagOfWords):
     tfDict = {}
     bagOfWordsCount = len(bagOfWords)
@@ -15,9 +85,11 @@ def computeTF(wordDict, bagOfWords):
         tfDict[word] = count / float(bagOfWordsCount)
     return tfDict
 
-# ------------------------------------------------------------------------------------------------------------------------------
+tfA = computeTF(numOfWordsA, bagOfWordsA)
+tfB = computeTF(numOfWordsB, bagOfWordsB)
+
+# Step 6: Compute IDF
 def computeIDF(documents):
-    import math
     N = len(documents)
     idfDict = dict.fromkeys(documents[0].keys(), 0)
     for document in documents:
@@ -25,69 +97,31 @@ def computeIDF(documents):
             if val > 0:
                 idfDict[word] += 1
     for word, val in idfDict.items():
-        if val > 0:
-            idfDict[word] = math.log(N / float(val))
-        else:
-            idfDict[word] = 0
+        idfDict[word] = math.log(N / float(val))
     return idfDict
 
-# ------------------------------------------------------------------------------------------------------------------------------
+idfs = computeIDF([numOfWordsA, numOfWordsB])
+print("\nIDF Values:\n", idfs)
+
+# Step 7: Compute TF-IDF
 def computeTFIDF(tfBagOfWords, idfs):
     tfidf = {}
     for word, val in tfBagOfWords.items():
         tfidf[word] = val * idfs[word]
     return tfidf
 
-# ------------------------------------------------------------------------------------------------------------------------------
-text = "Tokenization is the first step in text analytics. The process of breaking down a text paragraph into smaller chunks such as words or sentences is called Tokenization."
-print('The given sentence is:\n', text)
+tfidfA = computeTFIDF(tfA, idfs)
+tfidfB = computeTFIDF(tfB, idfs)
 
-# ------------------------------------------------------------------------------------------------------------------------------
-# Sentence Tokenization
-from nltk.tokenize import sent_tokenize
-tokenized_text = sent_tokenize(text)
-print("\nSentence Tokenization:\n", tokenized_text)
+df = pd.DataFrame([tfidfA, tfidfB])
+print("\nTF-IDF Table:\n", df)
 
-# Word Tokenization
-from nltk.tokenize import word_tokenize
-tokenized_word = word_tokenize(text)
-print('\nWord Tokenization:\n', tokenized_word)
+# -----------------------------
+# Bonus: TF-IDF with Sklearn
+# -----------------------------
+corpus = [documentA, documentB]
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(corpus)
 
-# ------------------------------------------------------------------------------------------------------------------------------
-# POS Tagging
-pos_tags = nltk.pos_tag(tokenized_word)
-print("\nPart of Speech Tagging:\n", pos_tags)
-
-# ------------------------------------------------------------------------------------------------------------------------------
-# Removing Stopwords
-from nltk.corpus import stopwords
-stop_words = set(stopwords.words("english"))
-
-text2 = "How to remove stop words with NLTK library in Python?"
-text2 = re.sub('[^a-zA-Z]', ' ', text2)  # Removing non-alphabet characters
-tokens = word_tokenize(text2.lower())
-filtered_text = [w for w in tokens if w not in stop_words]
-
-print("\nTokenized Sentence:\n", tokens)
-print("Filtered Sentence (without stopwords):\n", filtered_text)
-
-# ------------------------------------------------------------------------------------------------------------------------------
-# Stemming
-from nltk.stem import PorterStemmer
-e_words = ["wait", "waiting", "waited", "waits"]
-ps = PorterStemmer()
-print("\nStemming Examples:")
-for w in e_words:
-    rootWord = ps.stem(w)
-    print(f'Stemming for {w}: {rootWord}')
-
-# ------------------------------------------------------------------------------------------------------------------------------
-# Lemmatization
-from nltk.stem import WordNetLemmatizer
-wordnet_lemmatizer = WordNetLemmatizer()
-text3 = "studies studying cries cry"
-tokenization = nltk.word_tokenize(text3)
-
-print("\nLemmatization Examples:")
-for w in tokenization:
-    print(f"Lemma for {w} is {wordnet_lemmatizer.lemmatize(w)}")
+print("\nTF-IDF using Sklearn:")
+print(pd.DataFrame(X.toarray(), columns=vectorizer.get_feature_names_out()))
